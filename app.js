@@ -51,21 +51,24 @@ function logRooms() {
 }
 
 io.on('connection', (socket) => {
-  console.log('User joined room ', socket.id)
-
   let roomId = socket.handshake.query.roomId
+  const userName = socket.handshake.query.name
+
   if (!roomId) {
-    roomId = short.generate()
-    socket.emit('room', roomId)
+    const id = short.generate();
+    roomId = id.slice(0, 4).toUpperCase();
   }
 
-  socket.join(roomId)
+  socket.emit('room', roomId)
 
   players.push({
     id: socket.id,
-    name: '',
+    name: userName ? userName : `Player ${players.length + 1}`,
     roomId: roomId,
   })
+
+  socket.join(roomId)
+  updateClientsInRoom(roomId)
 
   socket.on('name', (name) => {
     let player = players.find(p => p.id === socket.id)
@@ -77,7 +80,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('show', (show) => {
-    io.to(roomId).emit('show')
+    io.to(roomId).emit('show', show)
   })
 
   socket.on('restart', () => {
@@ -88,6 +91,10 @@ io.on('connection', (socket) => {
     players = players.filter(player => player.id !== socket.id);
     updateClientsInRoom(roomId);
   });
+
+  socket.on('end', () => {
+    socket.disconnect(0)
+  })
 
   // keeping the connection alive
   socket.on('pong', () => {
