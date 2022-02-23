@@ -79,6 +79,19 @@ io.on('connection', (socket) => {
     updateClientsInRoom(roomId)
   })
 
+  socket.on('vote', (vote) => {
+    let player = players.find(p => p.id == socket.id);
+    if (player) {
+      player.vote = vote;
+    }
+
+    const playersInRoom = players.filter(p => p.roomId == roomId);
+    if (playersInRoom.every(p => p.vote)) {
+      io.to(roomId).emit('show');
+    }
+    updateClientsInRoom(roomId);
+  });
+
   socket.on('show', (show) => {
     io.to(roomId).emit('show', show)
   })
